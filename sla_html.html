@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SLA's Tendencys — Consultor Interactivo</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#eef2f8;font-size:13px}
+#header{background:#0d1f3c;color:#fff;padding:16px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#header .title{font-weight:900;font-size:1.1rem;letter-spacing:1px}
+#header .title span{color:#7ec8f0}
+#header .sub{font-size:.72rem;color:#a8c8e8;margin-left:auto}
+#layout{display:flex;max-width:1100px;margin:0 auto}
+#sidebar{width:200px;min-width:160px;background:#fff;border-right:1px solid #d0dff0;min-height:calc(100vh - 54px);padding:10px 0}
+#sidebar button{display:flex;align-items:center;gap:7px;width:100%;padding:9px 14px;border:none;background:transparent;border-left:3px solid transparent;cursor:pointer;font-size:.75rem;font-weight:400;color:#475569;text-align:left;transition:all .15s}
+#sidebar button.active{background:#eef4fb;border-left:3px solid #1a5fa8;font-weight:700;color:#0d1f3c}
+#main{flex:1;padding:20px 18px;overflow:auto}
+.dept-header{background:linear-gradient(135deg,#0d1f3c,#1a5fa8);border-radius:10px;padding:16px 20px;margin-bottom:16px;color:#fff}
+.dept-header .num{font-size:.65rem;font-weight:700;letter-spacing:1px;color:#a8c8e8;margin-bottom:4px}
+.dept-header h2{font-size:1.1rem;font-weight:900}
+.dept-header p{font-size:.78rem;color:#a8c8e8;margin-top:2px}
+.kpi-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.kpi-box{flex:1;min-width:90px;background:linear-gradient(135deg,#0d1f3c,#1a5fa8);border-radius:10px;padding:12px 8px;text-align:center;color:#fff}
+.kpi-box .ki{font-size:1.2rem}
+.kpi-box .kv{font-weight:900;font-size:1rem;margin-top:2px}
+.kpi-box .kl{font-size:.54rem;opacity:.9;margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+#search{width:100%;padding:8px 12px;border-radius:7px;border:1px solid #d0dff0;margin-bottom:14px;font-size:.82rem;outline:none}
+.notes{background:#eef4fb;border:1px solid #90bce0;border-radius:7px;padding:10px 14px;margin-bottom:14px}
+.notes li{font-size:.8rem;color:#0d2a50;margin-bottom:3px;margin-left:18px}
+.sec-title{font-size:.87rem;font-weight:800;color:#0f3d6e;border-left:4px solid #1a5fa8;padding-left:10px;margin-bottom:8px;margin-top:16px}
+table{width:100%;border-collapse:collapse;margin-bottom:4px}
+th{background:#0d1f3c;color:#fff;padding:6px 10px;font-size:.72rem;text-align:left}
+td{padding:6px 10px;border-bottom:1px solid #eaf0f8;font-size:.78rem;background:#fff}
+tr:nth-child(even) td{background:#f4f8fd}
+.v{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.73rem;font-weight:700}
+.g{background:#d4f4dd;color:#155724;border:1px solid #86efac}
+.o{background:#fff3cd;color:#856404;border:1px solid #ffd97d}
+.r{background:#ffe0dc;color:#8b1a0a;border:1px solid #fca5a5}
+.n{background:#eef2f6;color:#334155;border:1px solid #cbd5e1}
+.legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px;padding:10px 12px;background:#fff;border-radius:8px;border:1px solid #d0dff0;align-items:center}
+.legend span.lbl{font-size:.7rem;color:#475569}
+#no-results{color:#94a3b8;font-size:.85rem;text-align:center;padding:30px;display:none}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="title">SLA's <span>Tendencys</span></div>
+  <div class="sub">Vigencia: 01 ene – 31 dic 2026 · Confidencial</div>
+</div>
+
+<div id="layout">
+  <div id="sidebar"></div>
+  <div id="main">
+    <div id="dept-header" class="dept-header">
+      <div class="num" id="dh-num"></div>
+      <h2 id="dh-title"></h2>
+      <p id="dh-sub"></p>
+    </div>
+    <div id="kpis" class="kpi-row"></div>
+    <input id="search" type="text" placeholder="🔍 Buscar métrica o proceso...">
+    <div id="notes" class="notes" style="display:none"><ul id="notes-list"></ul></div>
+    <div id="sections"></div>
+    <div id="no-results">No se encontraron resultados.</div>
+    <div class="legend">
+      <span class="lbl">Leyenda:</span>
+      <span class="v g">Cumplimiento alto</span>
+      <span class="v o">Tiempo moderado</span>
+      <span class="v r">Plazo extendido / crítico</span>
+      <span class="v n">Estándar / referencia</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const departments=[
+  {id:"base",icon:"📋",label:"SLA's Generales (BASE)"},
+  {id:"01",icon:"🌎",label:"Country Managers"},
+  {id:"02",icon:"💰",label:"Finanzas"},
+  {id:"03",icon:"🤝",label:"Partnerships"},
+  {id:"04",icon:"📈",label:"Ventas"},
+  {id:"05",icon:"🏢",label:"Corporate Sales"},
+  {id:"06",icon:"⚙️",label:"Operaciones"},
+  {id:"07",icon:"📦",label:"Fulfillment"},
+  {id:"08",icon:"⚖️",label:"Legal"},
+  {id:"09",icon:"🚚",label:"LTL"},
+  {id:"10",icon:"🚛",label:"FTL"},
+  {id:"11",icon:"📣",label:"Marketing"},
+  {id:"12",icon:"💻",label:"Product & IT"},
+  {id:"13",icon:"👥",label:"RRHH"},
+  {id:"14",icon:"🌱",label:"Growth"},
+  {id:"15",icon:"📊",label:"Strategy / BI"},
+];
+
+const data={
+  base:{title:"SLA's Generales",subtitle:"Normas base aplicables a toda la empresa",notes:["Usar lenguaje claro y profesional en todas las comunicaciones.","El uso de acentos es obligatorio.","Herramientas de corrección (Grammarly) antes de enviar cualquier comunicación.","Reuniones con agenda clara; notas enviadas al finalizar."],sections:[
+    {title:"Tiempos de Respuesta",rows:[["Emails Internos","24 horas laborales","g"],["Emails Externos","48 horas laborales","o"],["Soporte Técnico (respuesta)","4 horas","g"],["Soporte Técnico (resolución)","24 horas laborales","o"],["Slack – Urgente","30 minutos","g"],["Slack – No urgente","8 horas laborales","n"]]},
+    {title:"Slack – Iconos Estandarizados",rows:[["✅ Afirmación","Confirmar lectura/comprensión","g"],["❌ Negación","No acuerdo / no posible","r"],["⏳ Espera","Acción en progreso o pendiente","o"],["📌 Importante","Mensajes críticos o tareas clave","n"]]},
+  ]},
+  "01":{title:"Country Managers",subtitle:"Commercial MDR/SDR · BDM · Recursos Humanos",sections:[
+    {title:"1.2 Commercial MDR / SDR",rows:[["Email","< 5 minutos","g"],["WhatsApp","< 15 minutos","g"],["Llamada","< 1 hora","n"],["Intentos de contacto","5 intentos en 3 días","n"],["Propuesta de precios","2 horas","o"],["Alerta Churn","Primeras 2 horas","r"],["Seguimiento de cuentas (1ª semana)","Cada 24 hrs post inicio ops","n"],["Atención grupos CSR (WhatsApp)","≤ 30 minutos","g"],["Solicitud de créditos","24 horas","n"],["Firma de solicitud de créditos","72 horas","o"]]},
+    {title:"1.3.1 Integraciones",rows:[["Contacto para llamada","2 días","n"],["Proceso de integración","30 minutos","g"],["Creación de ticket de seguimiento","Al instante","g"],["Seguimiento de solución","48–72 horas","o"],["Seguimiento de cuenta (1ª semana)","Cada 24 hrs post integración","n"]]},
+    {title:"1.3.2 Carriers",rows:[["Envíos entregados","> 99%","g"],["Envíos en incidencia","< 0.5%","g"],["Tiempo solución incidencia","< 5 días","n"]]},
+    {title:"1.3.3 Chat",rows:[["Primera respuesta (9:00–19:00)","≤ 25 segundos","g"],["Satisfacción","≥ 92%","g"]]},
+    {title:"1.3.4 Tickets",rows:[["Primera respuesta","24 horas","n"],["Solución total a incidencias","7 días","o"],["Incidencias a resolver","100%","g"]]},
+    {title:"1.3.6 Slack",rows:[["Primera respuesta a incidencias","15 minutos","g"],["Reacción de Enterado en grupos","> 30 minutos","n"]]},
+    {title:"1.4 BDM",rows:[["Propuesta de oferta Custom","24 horas","n"],["Responder contrapropuesta carriers","24 horas","n"],["Reunión con proveedores activos","Cada 15 días","n"],["Atención cartera clientes top","2 horas, 1 vez/semana","n"],["Puntos acordados en minuta","Inmediata","g"],["Documentación legal (borrador)","2 días","n"],["Apertura de cuenta","2–3 días","n"],["Documentación IT","1 día","g"],["Elaboración y alta de Price Plan","1 día","g"],["Negociación de tarifas","5 días","n"],["Desarrollo integración plataforma","15–20 días","o"],["Pruebas operativas","Primeros 5 días de lanzamiento","n"]]},
+    {title:"1.5 RRHH (Country)",rows:[["Apertura de vacante","Al instante","g"],["Entrevista y filtrado candidatos","5 días post apertura","n"],["Contratación de personal","3 días post entrevista final","g"],["Alta de personal (documentación)","1er día de ingreso","g"],["Capacitación nuevos ingresos","7 días","n"],["Evaluación desempeño (30-60-90)","1 vez/mes","n"],["Envío información de comisiones","Día 5 de cada mes","n"]]},
+  ]},
+  "02":{title:"Finanzas",subtitle:"Tesorería · Nómina · Contabilidad · Facturación",sections:[
+    {title:"2.1 Tesorería",rows:[["Reporte de gastos por dirección","Máx. 10 días hábiles post cierre","n"],["Revisión contracargos","Máx. 5 días hábiles post creación","n"],["Reembolso – sin actividad","Máx. 3 días hábiles","g"],["Reembolso – error de depósito","Máx. 3 días hábiles","g"],["Reembolso – actividad nacional","Máx. 10 días hábiles","o"],["Reembolso – actividad internacional","Máx. 22 días hábiles","r"],["Reembolso COD","Máx. 3 días hábiles","g"]]},
+    {title:"2.2 Nómina y Beneficios",rows:[["Habilitación comisiones globales","Antes del día 14 de cada mes","n"],["Solución incidentes vales de despensa","Máx. 1 día hábil","g"],["Solución incidentes nómina","Máx. 1 día hábil","g"]]},
+    {title:"2.3 Contabilidad",rows:[["Informes de ingresos y ventas","Primeros 12 días hábiles del mes","n"],["Cálculo y determinación de impuestos","Antes del día 10 de cada mes","n"],["Pago de impuestos","Máx. día 17 de cada mes","o"]]},
+    {title:"2.4 Cuentas por Cobrar",rows:[["Contacto clientes con adeudos","Primeros 5 días hábiles del mes","n"],["Contacto clientes saldo negativo ≥15 días","1 día hábil (búsqueda conciliadora)","g"]]},
+    {title:"2.5 Facturación",rows:[["Brasil (Recarga)","Último día del mes","n"],["México, Colombia, Guatemala","Antes del último día del mes","n"],["España e India","Primeros 5 días del mes posterior","o"],["Fulfillment México","Antes del día 10 del mes posterior","o"]]},
+    {title:"2.6 Costos y Margen Operativo",rows:[["Cálculo de margen operativo","Máx. 7 días hábiles post cierre","n"],["Propuestas elasticidad de precios","Máx. 3 días hábiles post cálculo","g"],["Cargos adicionales clientes T4–T5","3 días previos a su ejecución","n"],["Actualización organizadores de costos","Máx. 3 días hábiles post ajuste","g"],["Auditoría costos vs carriers","Diaria, reporte máx. 1 día hábil","g"],["Auditoría planes Custom Global","Antes del día 7 de cada mes","n"]]},
+    {title:"2.7 Planeación Financiera",rows:[["Presupuestos de Nómina","Máx. 1 día hábil post cierre","g"],["Presupuestos de Marketing","Máx. 1 día hábil post cierre trimestral","g"],["Resumen Ejecutivo KPIs","Máx. 3 días hábiles post cierre","g"],["Proyecciones y análisis financieros","Máx. 15 días hábiles","o"]]},
+  ]},
+  "03":{title:"Partnerships Estratégicos",subtitle:"Prospección · Negociación · Escalamiento",sections:[
+    {title:"3.1 Prospección y Evaluación",rows:[["Contacto inicial tras detectar oportunidad","Máx. 3 días hábiles","g"],["Seguimiento a oportunidades","Cada 48 horas hábiles","n"],["Resolución de problemas operativos","Máx. 24 hrs hábiles","g"]]},
+    {title:"3.2 Mantenimiento de Relaciones",rows:[["Reuniones estratégicas con oportunidades clave","1 reunión presencial cada 3 meses","n"],["Respuesta a incidencias y ajustes contractuales","Máx. 48 horas hábiles","o"],["Reportes internos de desempeño","Mensual","n"]]},
+    {title:"3.3 Gestión de Oportunidades",rows:[["Respuesta de viabilidad","24 horas hábiles","g"],["Resolución de escalaciones críticas","48 horas hábiles","o"],["Participación en eventos","2 EXPOS anuales con 1 participación activa","n"]]},
+    {title:"3.4 Negociación y Formalización",rows:[["Propuestas comerciales","48 horas hábiles","o"],["RFP/RFQ","Máx. 7 días hábiles","n"],["Negociación de términos y condiciones","Máx. 10 días hábiles","o"],["Formalización y firma de contratos","Máx. 30 días hábiles","r"]]},
+    {title:"3.5 Escalamiento y Mejora Continua",rows:[["Revisión términos legales antes de firma","48 horas hábiles","o"],["Inicio negociación hasta cierre contrato","60 días hábiles, mín. 3 reuniones","r"],["Revisión y actualización de acuerdos","Cada 6 meses, conclusiones en 15 días","n"]]},
+  ]},
+  "04":{title:"Ventas (Área Comercial)",subtitle:"Leads · Cotizaciones · Onboarding · Reportes",sections:[
+    {title:"4.1 Respuesta y Atención a Leads",rows:[["Leads marketing – WhatsApp","Máximo 30 minutos","g"],["Leads marketing – Llamada","Máximo 2 horas","o"],["Leads/Cliente – WhatsApp","15 minutos","g"],["Leads/Cliente – Llamada","Inmediato o devolver máx. 30 min","g"],["Chat con cliente","15 a 20 minutos","g"],["Grupos de WhatsApp","10 a 15 minutos","g"],["Correos / grupos de Slack","30 minutos","n"]]},
+    {title:"4.2 Cotizaciones y Propuestas",rows:[["Solicitud de propuesta comercial","24 horas","n"],["Cotizaciones personalizadas (Custom)","Máximo 2 horas","g"],["Aprobación/Rechazo de créditos","24 horas","n"],["Tiempo de aprobación de crédito","24–48 horas","o"]]},
+    {title:"4.3 Onboarding y Retención",rows:[["Onboarding de nuevos clientes","30 min, finalizar en 7 días desde activación","g"],["Seguimiento clientes nuevos (30 días)","Días 7, 15 y 30 post activación","g"],["Resolución problemas operativos","Máximo 24 horas hábiles","n"]]},
+    {title:"4.4 Renovaciones",rows:[["Aviso previo a vencimiento de contratos","30 días antes","o"],["Resolución cambios en condiciones","Máximo 2 días hábiles","g"],["Contacto a clientes inactivos >30 días","3 días hábiles desde detección","g"]]},
+    {title:"4.5 Reportes y Análisis",rows:[["Reportes de desempeño de ventas","Cada semana","n"],["Evaluación tasas de conversión","Mensual con presentación a dirección","n"],["Implementación estrategias de mejora","Evaluación 10 días, ejecución por prioridad","o"]]},
+  ]},
+  "05":{title:"Corporate Sales",subtitle:"Idéntico a Ventas (Área Comercial) — secciones 5.1 a 5.5",sections:[
+    {title:"5.1 Respuesta y Atención a Leads",rows:[["Leads marketing – WhatsApp","Máximo 30 minutos","g"],["Leads marketing – Llamada","Máximo 2 horas","o"],["Leads/Cliente – WhatsApp","15 minutos","g"],["Leads/Cliente – Llamada","Inmediato o devolver máx. 30 min","g"],["Chat con cliente","15 a 20 minutos","g"],["Grupos de WhatsApp","10 a 15 minutos","g"],["Correos / grupos de Slack","30 minutos","n"]]},
+    {title:"5.2 Cotizaciones y Propuestas",rows:[["Solicitud de propuesta comercial","24 horas","n"],["Cotizaciones personalizadas (Custom)","Máximo 2 horas","g"],["Aprobación/Rechazo de créditos","24 horas","n"],["Tiempo de aprobación de crédito","24–48 horas","o"]]},
+    {title:"5.3 Onboarding y Retención",rows:[["Onboarding de nuevos clientes","30 min, finalizar en 7 días desde activación","g"],["Seguimiento clientes nuevos (30 días)","Días 7, 15 y 30 post activación","g"],["Resolución problemas operativos","Máximo 24 horas hábiles","n"]]},
+    {title:"5.4 Renovaciones",rows:[["Aviso previo a vencimiento de contratos","30 días antes","o"],["Resolución cambios en condiciones","Máximo 2 días hábiles","g"],["Contacto a clientes inactivos >30 días","3 días hábiles desde detección","g"]]},
+    {title:"5.5 Reportes y Análisis",rows:[["Reportes de desempeño de ventas","Cada semana","n"],["Evaluación tasas de conversión","Mensual con presentación a dirección","n"],["Implementación estrategias de mejora","Evaluación 10 días, ejecución por prioridad","o"]]},
+  ]},
+  "06":{title:"Operaciones (Servicio al Cliente)",subtitle:"Respuesta · Resolución · Calidad · Retención",kpis:[{icon:"💬",val:"≤1 min",lbl:"Chat"},{icon:"📱",val:"≤5 min",lbl:"WhatsApp"},{icon:"🎫",val:"≤10 min",lbl:"Tickets"},{icon:"😊",val:"≥4.5/5",lbl:"Satisfacción"},{icon:"🔒",val:"≥98%",lbl:"Retención"}],sections:[
+    {title:"6.1 Eficiencia de Respuesta",rows:[["WhatsApp","≤ 5 minutos","g"],["Chat","≤ 1 minuto","g"],["Tickets","≤ 10 minutos","g"]]},
+    {title:"6.2–6.7 Gestión y Resultados",rows:[["Tiempo de resolución de tickets","≤ 20 días hábiles","o"],["Actualización de estatus al cliente","≤ 48 horas","o"],["Puntuación de calidad de atención","≥ 90 puntos","g"],["Satisfacción del cliente","≥ 4.5 / 5","g"],["Clientes retenidos","≥ 98%","g"],["Balance financiero (recuperado vs indemnizado)","≥ 0","g"]]},
+  ]},
+  "07":{title:"Fulfillment",subtitle:"Almacenamiento · Pick & Pack · Devoluciones",kpis:[{icon:"🗂️",val:"99.5%",lbl:"Precisión inv."},{icon:"🎯",val:"≥99.9%",lbl:"Exactitud picking"},{icon:"🕓",val:"100%",lbl:"Órdenes < 4pm"},{icon:"⚡",val:"1:30min",lbl:"Picking/orden"},{icon:"📦",val:"5 min",lbl:"Packing/orden"}],sections:[
+    {title:"7.1 Recepción e Ingreso de Inventario",rows:[["Procesamiento de inventario","Máx. 24 hrs hábiles desde llegada","n"],["Verificación de calidad y discrepancias","< 24 hrs tras recepción","n"],["Precisión de inventario","99.5%","g"],["Contabilidad de inventario cíclico","Cada 3 meses con revisiones diarias","n"]]},
+    {title:"7.2 Pick & Pack",rows:[["Pedidos estándar","< 12 hrs hábiles desde confirmación","n"],["Pedidos urgentes/prioritarios","< 4 hrs hábiles","g"],["Exactitud en preparación","≥ 99.9%","g"],["Procesamiento de órdenes","100% antes de las 4pm","g"],["Picking máximo por orden","1:30 min","g"],["Packing máximo por orden","5 min","g"]]},
+    {title:"7.3 Envío y Despacho",rows:[["Salida pedidos estándar","< 24 hrs hábiles post preparación","n"],["Salida pedidos urgentes","< 8 hrs hábiles post preparación","g"],["Respuesta a incidencias/Tickets","< 24 hrs hábiles","n"],["Escalación envío tardío >5 días","< 24 hrs hábiles","n"]]},
+    {title:"7.4 Devoluciones",rows:[["Procesamiento de devoluciones","< 48 hrs hábiles desde recepción","o"],["Reintegración de productos al inventario","< 48 hrs hábiles post validación","o"],["Reporte de inventario dañado","< 24 hrs hábiles tras inspección","n"]]},
+    {title:"7.5 Soporte y Servicio al Cliente",rows:[["Consultas de stock y pedidos","< 2 hrs hábiles","g"],["Resolución de incidencias operativas","Máx. 24–48 hrs hábiles","o"],["Análisis de discrepancias de inventario","Máx. 5 días hábiles","n"]]},
+  ]},
+  "08":{title:"Legal",subtitle:"Contratos · Disputas · Cumplimiento · Privacidad",sections:[
+    {title:"8.1 Revisión y Elaboración de Contratos",rows:[["Contratos internos","Máx. 5 días hábiles","g"],["Contratos comerciales","Máx. 10 días hábiles","o"],["Elaboración contratos nuevos","Máx. 15 días hábiles","r"],["Modificaciones solicitadas","Máx. 7 días hábiles","n"]]},
+    {title:"8.2 Disputas y Reclamaciones",rows:[["Respuesta inicial a disputas","< 48 hrs hábiles","o"],["Análisis y estrategia en disputas complejas","Máx. 15 días hábiles","r"],["Requerimientos judiciales o regulatorios","Máx. 5 días hábiles","n"],["Resolución de reclamaciones legales","Máx. 30 días hábiles","r"]]},
+    {title:"8.3 Cumplimiento Normativo",rows:[["Revisión de cambios normativos","Cada 3 meses","n"],["Consultas normativas internas","72 hrs hábiles","o"],["Implementación nuevos requisitos legales","Máx. 60 días hábiles","r"],["Auditorías de cumplimiento","Cada 6 meses, reporte en 15 días","n"]]},
+    {title:"8.4 Protección de Datos",rows:[["Solicitudes de acceso/eliminación datos","Máx. 10 días hábiles","o"],["Evaluación incidentes de seguridad","< 24 hrs hábiles","n"],["Mitigación de incidentes","Máx. 7 días hábiles","n"],["Revisión políticas de privacidad","Cada 12 meses o por cambio regulatorio","n"]]},
+    {title:"8.5 Propiedad Intelectual",rows:[["Registro de marcas o patentes","Máx. 30 días hábiles","r"],["Respuesta a reclamaciones de PI","< 10 días hábiles","o"],["Monitoreo de marcas","Trimestral con reporte de incidentes","n"]]},
+    {title:"8.6 Asesoría Interna",rows:[["Consultas legales de otras áreas","Máx. 48 hrs hábiles","o"],["Preparación de reportes legales","Máx. 7 días hábiles","n"],["Análisis de riesgos legales proyectos","Máx. 15 días hábiles","r"]]},
+  ]},
+  "09":{title:"Carga Consolidada (LTL)",subtitle:"Ventas · Cotización · Coordinación · Reclamos",sections:[
+    {title:"9.1 Prospección y Conversión",rows:[["Contacto con leads","< 1.5 hrs hábiles desde recepción","g"],["Primer contacto hasta oferta comercial","Máx. 24 hrs hábiles","n"],["Oferta hasta cierre (calificados)","Máx. 7 días hábiles","n"],["Conversión de leads calificados","≥ 15% mensual","g"]]},
+    {title:"9.2 Cotización y Atención",rows:[["Cotizaciones estándar","< 4 hrs hábiles","g"],["Cotizaciones personalizadas / alto volumen","Máx. 24 hrs hábiles","n"],["Activación de clientes nuevos","< 48 hrs hábiles","o"],["Validación de tarifas con carriers","< 24 hrs hábiles","n"]]},
+    {title:"9.3 Coordinación de Envíos",rows:[["Confirmación del servicio con carrier","< 6 hrs hábiles","g"],["Programación recolección – metro","24 hrs hábiles","n"],["Programación recolección – foránea","48–72 hrs hábiles","o"],["Envío instrucciones al carrier","< 4 hrs hábiles","g"],["Actualización de estatus","Cada 24 hrs o al haber novedades","n"]]},
+    {title:"9.4 Monitoreo y Soporte",rows:[["Consultas sobre estatus del envío","< 2 hrs hábiles","g"],["Contacto inicial incidencia con carrier","< 4 hrs hábiles","g"],["Resolución de incidencia","Máx. 48 hrs hábiles","o"],["Comunicación de demoras críticas","< 6 hrs hábiles","g"]]},
+    {title:"9.5 Reclamos y Devoluciones",rows:[["Respuesta a reclamaciones","< 48 hrs hábiles","o"],["Recolección info con carrier","Máx. 5 días hábiles","n"],["Resolución de reclamaciones","Máx. 15 días hábiles","r"],["Procesamiento de reembolsos aprobados","Máx. 10 días hábiles","o"]]},
+    {title:"9.6–9.8 Crecimiento y Evaluación",rows:[["Respuesta a clientes Tiers 2–5","Máx. 2 hrs hábiles","o"],["Contacto proactivo con clientes","1 reunión mensual","n"],["Activación operativa nuevos clientes","Máx. 10 días hábiles","o"],["Primer envío tras activación","Máx. 7 días hábiles","n"],["Cumplimiento de entregas a tiempo","≥ 95%","g"]]},
+  ]},
+  "10":{title:"Carga Completa (FTL)",subtitle:"Publicación · Cumplimiento · Carriers · Economía",sections:[
+    {title:"10.1 Publicación de Cargas",rows:[["Cargas publicadas vs tomadas","≤ 75%","o"],["Cargas expiradas","≤ 10%","g"],["Cargas en loadboard con ≥1 oferta","≥ 70%","g"],["Cargas tomadas en ≤48 hrs","≥ 90%","g"],["Cargas tomadas en Quick Price","≥ 15%","g"]]},
+    {title:"10.2 Cumplimiento Operativo",rows:[["Cargas recolectadas a tiempo (OTA)","≥ 90%","g"],["Cargas entregadas a tiempo (OTD)","≥ 90%","g"],["Viajes con tracking activo","≥ 90%","g"],["Viajes con incidencias críticas","≤ 5%","g"]]},
+    {title:"10.3 Carriers",rows:[["Carriers en Tier 5","≥ 10% de base activa","g"],["Carriers nuevos activados","≥ 10 por mes","g"],["PODs subidos en plataforma","100%","g"],["Carriers con tarifas cargadas","≥ 50%","o"]]},
+    {title:"10.4 Merchants",rows:[["Merchants en Tier 5","≤ 10% de base activa","o"],["Merchants publicando cargas","≥ 80%","g"],["Merchants recurrentes (≥2 cargas/mes)","≥ 80%","g"],["Comunicación retrasos críticos","≤ 2 hrs hábiles","g"],["Merchants sin carga mensual","≤ 5%","g"]]},
+    {title:"10.5 Adopción de Plataforma",rows:[["PODs escaneados ≤48 hrs post entrega","≥ 85%","g"],["Merchants primera carga ≤7 días","≥ 70%","g"],["Carriers primer load ≤7 días","≥ 60%","o"]]},
+    {title:"10.6 Economía del Marketplace",rows:[["Margen promedio por viaje","≥ 10%","g"],["Viajes con margen negativo","≤ 3%","g"],["Discrepancia tarifa vs sistema","≤ 5%","g"],["Viajes cobrados ≤ términos de crédito","≥ 90%","g"],["Cartera vencida >15 días","≤ 10%","o"],["Clientes con crédito excedido","≤ 5%","g"]]},
+  ]},
+  "11":{title:"Marketing",subtitle:"Campañas · Diseño · Leads · Publicidad · Reportes",sections:[
+    {title:"11.1 Campañas y Contenidos",rows:[["Lanzamiento de campañas estándar","5 días hábiles desde solicitud","n"],["Contenido gráfico sencillo","1 día hábil","g"],["Contenido gráfico complejo","3–5 días hábiles","n"],["Contenido web o plataformas","48 hrs hábiles (sujeto a TI)","o"]]},
+    {title:"11.2 Diseño y Material Gráfico",rows:[["Materiales gráficos internos","Máx. 2 días hábiles","n"],["Modificaciones en diseños existentes","48 hrs (según complejidad)","o"],["Materiales impresos o físicos","15 días hábiles (sujeto a proveedor)","r"],["Edición de video con materiales existentes","Máx. 3 días hábiles","n"],["Producción de video desde cero","10–12 días hábiles","r"],["Post-producción de video","3–6 días hábiles","n"]]},
+    {title:"11.3 Leads y Soporte a Ventas",rows:[["Entrega de leads calificados (offline)","24 hrs hábiles post captura","n"],["Materiales digitales sencillos","1 día hábil","g"],["Materiales digitales complejos","3–5 días hábiles","n"],["Activación de promociones y descuentos","3 días desde aprobación","n"],["Campaña urgente de notificación","Máximo 4 horas","r"]]},
+    {title:"11.4 Publicidad y PR",rows:[["Lanzamiento anuncios pagados","Máx. 2 días hábiles","n"],["Respuesta a medios y PR","1 día hábil","g"],["Comunicados de prensa","3 días hábiles","n"],["Respuesta urgente a medios","Máximo 6 horas post aprobación","r"]]},
+    {title:"11.5 Reportes y Análisis",rows:[["Reportes de desempeño de campañas","Mensual con métricas clave","n"],["Análisis de impacto de estrategias","14 días hábiles post implementación","o"],["Mejoras basadas en datos","Evaluación 7 días, ejecución por prioridad","n"]]},
+  ]},
+  "12":{title:"Product & IT",subtitle:"Disponibilidad · Calidad · Seguridad · Innovación",kpis:[{icon:"🟢",val:"≥99.9%",lbl:"Uptime core"},{icon:"⚡",val:"≤1 hr",lbl:"Recup. crítica"},{icon:"🔧",val:"≤4 hrs",lbl:"Recup. alta"},{icon:"✅",val:"100%",lbl:"Post-Mortem"},{icon:"🎯",val:"≥80%",lbl:"Due Date"}],sections:[
+    {title:"12.1 Disponibilidad y Continuidad",rows:[["Uptime servicios core","≥ 99.9%","g"],["Recuperación eventos críticos","≤ 1 hora","r"],["Recuperación eventos altos","≤ 4 horas","o"],["Post-Mortem completado (críticos/altos)","100%","g"]]},
+    {title:"12.2 Entregables y Calidad",rows:[["Due Date Compliance global","≥ 80%","g"],["Tickets devueltos o reabiertos","≤ 15%","g"],["Incidentes post-release críticos/altos","0 / mes","g"]]},
+    {title:"12.3 Seguridad y Compliance",rows:[["Vulnerabilidades críticas abiertas ≥7 días","0","g"],["Vulnerabilidades medias abiertas ≥15 días","0","g"]]},
+    {title:"12.4 Innovación y Eficiencia",rows:[["AI Adoption promedio IT","≥ 65%","g"],["Equipo IT cumple métricas individuales","≥ 75%","g"],["Tickets resueltos dentro de SLA","≥ 85%","g"]]},
+  ]},
+  "13":{title:"Recursos Humanos",subtitle:"Administración · Reclutamiento · Capacitación · Cultura",sections:[
+    {title:"13.1 Administración de Personal",rows:[["Alta en IMSS / Nómina","1 día antes del ingreso","r"],["Entrega herramientas administrativas","Máx. 7 días hábiles","n"],["Alta en prestaciones y beneficios","5–10 días hábiles","n"],["Solicitudes administrativas generales","Respuesta 24 hrs, resolución 3 días","n"],["Proceso de finiquito","3 días hábiles","g"],["Proceso de liquidación","5 días post notificación de baja","n"],["Cierre administrativo de bajas","2 días hábiles","n"]]},
+    {title:"13.2 Reclutamiento y Selección",rows:[["Contratación operaciones (ventas/soporte)","20 días hábiles post apertura","n"],["Contratación Managers","45 días hábiles post apertura","o"],["Contratación Directores","60 días hábiles post apertura","r"],["Cumplimiento de cobertura","100% vacantes del 1 al 10 del mes","g"],["Efectividad de contratación","Máx. 2 ternas por vacante","n"],["Tasa de ingresos efectivos","90% con contrato previo al ingreso","g"],["Índice satisfacción del candidato","95%","g"],["Tasa de permanencia","85% nuevos ingresos","g"]]},
+    {title:"13.3 Capacitación y Onboarding",rows:[["Inducción al puesto","Máx. 5 días post ingreso","n"],["Horas capacitación presencial","Mínimo 50 horas","n"],["Satisfacción capacitación","≥ 85%","g"],["Nivel de aprendizaje","≥ 80 de calificación","g"],["Tasa cumplimiento presencial","≥ 60%","g"],["Tasa cumplimiento Envia Academy","≥ 60%","g"]]},
+    {title:"13.4 Desarrollo Organizacional",rows:[["Evaluación de desempeño","Al final de cada Q","n"],["Entrega resultados SLA's generales","Máx. 10 días hábiles del mes","n"],["Evaluaciones bidireccionales (30/60)","Máx. semana 4 del ingreso","n"],["Evaluaciones bidireccionales (90 días)","Inicio semana 3 del último mes de prueba","n"],["Reunión de renovación de contrato","Máx. 1 día hábil post 90 días","g"],["Repositorio de políticas internas","90% actualizado al mes","g"],["Identificación de HiPos","Cada 6 meses","n"],["Plan de vida y carrera","6 meses post ingreso","n"]]},
+    {title:"13.5 Cultura y Comunicación",rows:[["Kit de bienvenida","1er día laboral","g"],["Atención quejas o conflictos laborales","Respuesta 24 hrs, solución 10 días","n"],["Entrega compras EnviaShop","Máximo 5 horas","g"],["Organización de eventos","Mín. 1/mes (ops) y 1/Q (staff)","n"],["Reconocimientos por desempeño","Mín. 1/mes (ops) y 1/Q (staff)","n"],["Satisfacción por evento","≥ 4 en escala Likert","g"],["Cápsulas de comunicación","4 al mes","n"],["Campañas de identidad corporativa","4 al mes","n"]]},
+  ]},
+  "14":{title:"Growth",subtitle:"IA · Monitoreo · Equipos · Incidencias · Usuarios",sections:[
+    {title:"14.2 Inteligencia Artificial",rows:[["Registro de resolución de incidencias","Máx. 1 hr hábil","r"],["Solución de incidencias","Máx. 24 hrs hábiles","n"],["Calidad, servicio y atención","85% satisfacción","g"]]},
+    {title:"14.3 Monitoreo de Enlaces",rows:[["Monitoreo","24/7","g"],["Detección de falla","≤ 15 minutos","g"],["Notificación a stakeholders","≤ 30 minutos","g"],["Inicio de gestión","24/7","g"]]},
+    {title:"14.4 Asignación de Equipos",rows:[["Nuevo ingreso (onboarding)","≤ 3 días hábiles","n"],["Reemplazo por falla crítica","≤ 4 horas","r"],["Reemplazo planificado","≤ 48 hrs hábiles","o"],["Configuración estándar","≤ 24 horas","n"]]},
+    {title:"14.5 Resolución de Incidencias",rows:[["Falla crítica (sin operación)","Inmediata","r"],["Falla alta (función clave afectada)","≤ 1 hora","r"],["Falla media (error parcial)","≤ 24 horas","n"],["Falla baja (requerimiento menor)","≤ 48 horas","n"]]},
+    {title:"14.7 Atención a Usuarios",rows:[["Respuesta inicial – México","≤ 4 horas","g"],["Respuesta inicial – Global","≤ 8 horas","n"],["Resolución promedio – México","≤ 24 horas","n"],["Resolución promedio – Global","≤ 48 horas","o"],["Incidentes críticos – México","Atención inmediata","r"],["Incidentes críticos – Global","≤ 4 horas","r"]]},
+    {title:"14.8–14.9 Permisos y Usuarios",rows:[["Permiso estándar","≤ 24 horas","n"],["Modificación de permiso","Inmediato","r"],["Revocación de permiso","Inmediato","r"],["Alta estándar","≤ 24 horas","n"],["Alta urgente","≤ 4 horas","r"],["Baja programada","≤ 24 horas","n"],["Baja inmediata (seguridad)","Inmediato","r"]]},
+  ]},
+  "15":{title:"Strategy / Business Intelligence",subtitle:"Reportes · Dashboards · Análisis · Soporte",sections:[
+    {title:"15.1 Generación de Reportes",rows:[["Reportes/Queries estándar","Máx. 48 hrs hábiles","o"],["Actualización dashboards KPIs","Diario o en tiempo real","g"],["Acceso a reportes en Admin","1–2 días hábiles","n"]]},
+    {title:"15.2 Dashboards y Tablas",rows:[["Diseño y desarrollo de dashboards","15–30 días hábiles según complejidad","r"],["Actualización de datos en sistemas","1–3 días hábiles","n"]]},
+    {title:"15.3 Análisis y Toma de Decisiones",rows:[["Solicitudes de análisis específicos","Máx. 5 días hábiles","n"]]},
+    {title:"15.4 Automatización de Datos",rows:[["Alertas automatizadas en Slack","1–3 días hábiles","n"]]},
+    {title:"15.5 Soporte a Equipos Internos",rows:[["Solicitudes internas de datos/insights","< 24 hrs hábiles","g"],["Resolución de inconsistencias de datos","< 48 hrs hábiles","o"],["Capacitaciones sobre herramientas BI","Máx. 5 días hábiles para agendar","n"]]},
+  ]},
+};
+
+let active="base";
+
+function badge(type,text){
+  return `<span class="v ${type}">${text}</span>`;
+}
+
+function renderSidebar(){
+  const sb=document.getElementById("sidebar");
+  sb.innerHTML=departments.map(d=>`
+    <button onclick="setActive('${d.id}')" class="${d.id===active?'active':''}">
+      <span>${d.icon}</span><span>${d.label}</span>
+    </button>`).join("");
+}
+
+function renderMain(q=""){
+  const dept=data[active];
+  const info=departments.find(d=>d.id===active);
+  document.getElementById("dh-num").textContent=`${info.icon} ${active.toUpperCase()}`;
+  document.getElementById("dh-title").textContent=dept.title;
+  document.getElementById("dh-sub").textContent=dept.subtitle||"";
+
+  // KPIs
+  const kpiDiv=document.getElementById("kpis");
+  kpiDiv.innerHTML=dept.kpis?dept.kpis.map(k=>`
+    <div class="kpi-box">
+      <div class="ki">${k.icon}</div>
+      <div class="kv">${k.val}</div>
+      <div class="kl">${k.lbl}</div>
+    </div>`).join(""):"";
+
+  // Notes
+  const notesDiv=document.getElementById("notes");
+  const notesList=document.getElementById("notes-list");
+  if(dept.notes&&!q){
+    notesList.innerHTML=dept.notes.map(n=>`<li>${n}</li>`).join("");
+    notesDiv.style.display="block";
+  } else {
+    notesDiv.style.display="none";
+  }
+
+  // Sections
+  const ql=q.toLowerCase();
+  const filtered=dept.sections.map(s=>({
+    ...s,
+    rows:q?s.rows.filter(r=>r[0].toLowerCase().includes(ql)||r[1].toLowerCase().includes(ql)):s.rows
+  })).filter(s=>s.rows.length>0);
+
+  const secDiv=document.getElementById("sections");
+  const noRes=document.getElementById("no-results");
+
+  if(filtered.length===0){
+    secDiv.innerHTML="";
+    noRes.style.display="block";
+    noRes.textContent=`No se encontraron resultados para "${q}"`;
+  } else {
+    noRes.style.display="none";
+    secDiv.innerHTML=filtered.map(sec=>`
+      <div class="sec-title">${sec.title}</div>
+      <table>
+        <thead><tr><th>Proceso / Métrica</th><th style="width:44%">Tiempo / Meta</th></tr></thead>
+        <tbody>${sec.rows.map(r=>`<tr><td>${r[0]}</td><td>${badge(r[2],r[1])}</td></tr>`).join("")}</tbody>
+      </table>`).join("");
+  }
+}
+
+function setActive(id){
+  active=id;
+  document.getElementById("search").value="";
+  renderSidebar();
+  renderMain();
+}
+
+document.getElementById("search").addEventListener("input",function(){
+  renderMain(this.value);
+});
+
+renderSidebar();
+renderMain();
+</script>
+</body>
+</html>
